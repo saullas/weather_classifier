@@ -13,6 +13,7 @@ from PIL import Image
 from keras.regularizers import l2
 from keras.models import Sequential
 from keras.optimizers import Adam, SGD
+from keras.utils import to_categorical
 from keras.engine.training import Model
 from keras import backend as K, regularizers
 from keras.callbacks import LearningRateScheduler
@@ -20,7 +21,8 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.layers import Add, Conv2D, MaxPooling2D, Dropout, Flatten, Dense, BatchNormalization, Activation
 from sklearn.model_selection import train_test_split
 
-initial_lr = 0.01
+INITIAL_LR = 0.01
+MODEL_NAME = "custom"
 
 dir = '../data/dataset2'
 categories = sorted(os.listdir(dir))
@@ -46,25 +48,13 @@ for idx, f in enumerate(categories):
         X.append(data)
         Y.append(idx)
 
-        # for ang in range(-10, 10, 5):
-        #     img2 = img.rotate(ang)
-        #     data = np.asarray(img2)
-        #     X.append(data)
-        #     Y.append(label)
-        #
-        #     img2 = img2.transpose(Image.FLIP_LEFT_RIGHT)
-        #     data = np.asarray(img2)
-        #     X.append(data)
-        #     Y.append(label)
-
 X = np.array(X) / 255.0
 Y = np.array(Y)
 
-# df = pd.DataFrame({'image': [X], 'class': [Y]})
-# df = df.sample(frac=1)
-# print(df.head())
-# df.to_pickle('dataset.pickle')
 x_train, x_test, y_train, y_test = train_test_split(X, Y)
+
+y_train = to_categorical(y_train, 4)
+y_test = to_categorical(y_test, 4)
 
 print('X_train shape: ', x_train.shape[0])
 print('Y_train shape: ', y_train.shape)
@@ -76,16 +66,17 @@ train_gen = ImageDataGenerator(
     width_shift_range=0.5,
     height_shift_range=0.5,
     brightness_range=[0.25, 1.5],
-    horizontal_flip=True,)
+    horizontal_flip=True, )
 
 # test_gen = ImageDataGenerator()
 train_gen.fit(x_train)
 test_set = train_gen.flow(x_test, y_test, batch_size=256)
 
-
 model = Sequential()
+
 # Block 1
-model.add(Conv2D(32, kernel_size=3, kernel_initializer='he_uniform', kernel_regularizer=l2(0.0005), padding='same', input_shape=(64, 64, 3)))
+model.add(Conv2D(32, kernel_size=3, kernel_initializer='he_uniform', kernel_regularizer=l2(0.0005), padding='same',
+                 input_shape=(64, 64, 3)))
 model.add(Activation('elu'))
 model.add(BatchNormalization())
 model.add(MaxPooling2D(2, 2))
@@ -128,7 +119,7 @@ model.add(Activation('relu'))
 model.add(BatchNormalization())
 
 # Dense 2
-model.add(Dense(1, kernel_regularizer=l2(0.0005), activation='softmax'))
+model.add(Dense(4, kernel_regularizer=l2(0.0005), activation='softmax'))
 
 # Visualize Model
 model.summary()
@@ -136,39 +127,42 @@ model.summary()
 
 def lr_scheduler(epoch):
     if epoch < 20:
-        return initial_lr
+        return INITIAL_LR
     elif epoch < 40:
-        return initial_lr / 20
+        return INITIAL_LR / 20
     elif epoch < 50:
-        return initial_lr / 40
+        return INITIAL_LR / 40
     elif epoch < 60:
-        return initial_lr / 80
+        return INITIAL_LR / 80
     elif epoch < 70:
-        return initial_lr / 160
+        return INITIAL_LR / 160
     elif epoch < 80:
-        return initial_lr / 320
+        return INITIAL_LR / 320
     elif epoch < 90:
-        return initial_lr / 640
+        return INITIAL_LR / 640
     else:
-        return initial_lr / 1280
+        return INITIAL_LR / 1280
+
 
 model.compile(
-    loss = 'categorical_crossentropy',
-    optimizer = Adam(initial_lr),
-    metrics = ['accuracy']
+    loss='categorical_crossentropy',
+    optimizer=Adam(INITIAL_LR),
+    metrics=['accuracy']
 )
 
 history = model.fit(
     x_train, y_train,
-    epochs=300,
+    epochs=100,
     verbose=1,
     validation_data=(x_test, y_test),
-    callbacks=[keras.callbacks.LearningRateScheduler(lr_scheduler)],
+    callbacks=[LearningRateScheduler(lr_scheduler)],
     shuffle=True
 )
 
+model.save('../models/' + MODEL_NAME)
+
 score = model.evaluate(x_test, y_test, verbose=0)
-print(f'Test loss: {score[0]} / Test accuracy: {score[1]*100}')
+print(f'Test loss: {score[0]} / Test accuracy: {score[1] * 100}')
 # Visualize history
 # Plot history: Loss
 plt.plot(history.history['val_loss'])
@@ -176,9 +170,11 @@ plt.title('Validation loss history')
 plt.ylabel('Loss value')
 plt.xlabel('No. epoch')
 plt.show()
+plt.savefig('../models/' + MODEL_NAME + '/val_loss.png')
 # Plot history: Accuracy
 plt.plot(history.history['val_accuracy'])
 plt.title('Validation accuracy history')
 plt.ylabel('Accuracy value (%)')
 plt.xlabel('No. epoch')
 plt.show()
+plt.savefig('../models/' + MODEL_NAME + '/val_acc.png')
