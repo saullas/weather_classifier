@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 import glob
@@ -14,7 +13,7 @@ from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, BatchNormalizatio
 from sklearn.model_selection import train_test_split
 
 INITIAL_LR = 0.01
-MODEL_NAME = "big_dataset"
+MODEL_NAME = "ai_model.h5"
 
 dir = '../data/big_dataset'
 # categories = sorted(os.listdir(dir))
@@ -155,7 +154,7 @@ history = model.fit(
     shuffle=True
 )
 
-model.save('../models/' + MODEL_NAME)
+model.save('../model/' + MODEL_NAME)
 
 score = model.evaluate(x_test, y_test, verbose=0)
 print(f'Test loss: {score[0]} / Test accuracy: {score[1] * 100}')

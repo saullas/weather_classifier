@@ -2,7 +2,7 @@ data/dataset
 data/dataset2
 data/big_dataset
 .idea
-models/*
+model/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
