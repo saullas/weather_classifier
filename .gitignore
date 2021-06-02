@@ -3,6 +3,7 @@ data/dataset2
 data/big_dataset
 .idea
 model/*
+containerization/weather-model/weather_model_0.1.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
